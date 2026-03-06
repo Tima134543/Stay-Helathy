@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HealthyDay</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330;
+  --border:rgba(255,255,255,0.07);
+  --green:#39d98a; --green-dim:rgba(57,217,138,0.12);
+  --amber:#f9a825; --amber-dim:rgba(249,168,37,0.12);
+  --blue:#58a6ff; --blue-dim:rgba(88,166,255,0.1);
+  --red:#ff6b6b; --red-dim:rgba(255,107,107,0.12);
+  --purple:#b088f9; --purple-dim:rgba(176,136,249,0.12);
+  --text:#e6edf3; --text-muted:#7d8590; --text-dim:#3d444d;
+  --radius:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(57,217,138,0.05)0%,transparent 70%);pointer-events:none;z-index:0;}
+
+/* PAGES */
+.page{display:none;position:relative;z-index:1;max-width:480px;margin:0 auto;padding:0 0 90px;animation:fadeUp 0.3s ease;}
+.page.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* SHARED */
+.section-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--text-muted);padding:0 20px;margin-bottom:12px;}
+.header{padding:24px 20px 16px;display:flex;align-items:center;justify-content:space-between;}
+.header-left h1{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;letter-spacing:-0.5px;background:linear-gradient(135deg,var(--green)0%,#7affc4 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.header-left p{font-size:12px;color:var(--text-muted);margin-top:2px;font-weight:300;}
+.streak-badge{display:flex;align-items:center;gap:6px;background:var(--amber-dim);border:1px solid rgba(249,168,37,0.2);border-radius:20px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--amber);font-family:'Syne',sans-serif;}
+
+/* HOME HERO */
+.hero-card{margin:8px 20px 20px;background:linear-gradient(135deg,#1a2e1f,#0f1f18);border:1px solid rgba(57,217,138,0.2);border-radius:20px;padding:24px;position:relative;overflow:hidden;transition:transform 0.2s;}
+.hero-card:active{transform:scale(0.98);}
+.hero-card::before{content:'';position:absolute;top:0;right:0;width:160px;height:160px;background:radial-gradient(circle at top right,rgba(57,217,138,0.15),transparent 70%);pointer-events:none;}
+.time-label{font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.time-label::before{content:'';display:block;width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.hero-card h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;line-height:1.3;margin-bottom:10px;color:#fff;}
+.hero-card p{font-size:14px;color:rgba(255,255,255,0.6);line-height:1.6;}
+.send-btn{margin-top:16px;display:inline-flex;align-items:center;gap:8px;background:var(--green);color:#0d1117;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;padding:10px 18px;border-radius:10px;border:none;cursor:pointer;transition:all 0.2s;}
+.send-btn:active{filter:brightness(0.9);}
+
+/* STATS */
+.stats-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 20px;margin-bottom:28px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;text-align:center;cursor:pointer;transition:transform 0.2s;}
+.stat-card:active{transform:scale(0.95);}
+.stat-card .icon{font-size:22px;margin-bottom:6px;display:block;}
+.stat-card .val{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;}
+.stat-card .label{font-size:10px;color:var(--text-muted);margin-top:2px;}
+
+/* PROGRESS */
+.progress-section{padding:0 20px;margin-bottom:28px;}
+.progress-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px;display:flex;align-items:center;gap:20px;}
+.ring-wrap{position:relative;width:80px;height:80px;flex-shrink:0;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.ring-bg{stroke:var(--surface2);stroke-width:6;fill:none;}
+.ring-fill{stroke:var(--green);stroke-width:6;fill:none;stroke-linecap:round;stroke-dasharray:220;stroke-dashoffset:88;transition:stroke-dashoffset 0.8s ease;}
+.ring-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--green);}
+.progress-info h3{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;margin-bottom:4px;}
+.progress-info p{font-size:12px;color:var(--text-muted);line-height:1.5;}
+.mini-tasks{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+.mini-task{display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;user-select:none;}
+.check{width:16px;height:16px;border-radius:4px;border:1.5px solid;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all 0.2s;}
+.check.done{background:var(--green);border-color:var(--green);color:#000;}
+.check.todo{border-color:var(--text-dim);}
+
+/* MESSAGES */
+.messages-feed{padding:0 20px;}
+.msg-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:all 0.2s;position:relative;}
+.msg-item:active{transform:scale(0.98);}
+.msg-item.active-item{border-color:rgba(57,217,138,0.3);background:linear-gradient(135deg,rgba(57,217,138,0.05),var(--surface));}
+.msg-icon{font-size:26px;flex-shrink:0;}
+.msg-title{font-size:14px;font-weight:500;margin-bottom:3px;}
+.msg-text{font-size:12px;color:var(--text-muted);line-height:1.5;}
+.msg-time{font-size:10px;color:var(--text-dim);margin-top:5px;}
+.msg-arrow{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:var(--text-dim);font-size:16px;}
+
+/* ═══════════ SCHEDULE TAB ═══════════ */
+.sched-toolbar{display:flex;justify-content:space-between;align-items:center;padding:0 20px;margin-bottom:16px;}
+.sched-toolbar .section-title{margin:0;padding:0;}
+.add-btn{display:flex;align-items:center;gap:6px;background:var(--green);color:#0d1117;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;padding:8px 14px;border-radius:10px;border:none;cursor:pointer;transition:all 0.2s;}
+.add-btn:active{filter:brightness(0.9);}
+
+.timeline{padding:0 20px;margin-bottom:28px;}
+.tl-item{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);position:relative;}
+.tl-item:last-child{border-bottom:none;}
+.time-col{min-width:52px;}
+.time-col .t{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;}
+.time-col .period{font-size:10px;color:var(--text-muted);}
+.tl-mid{display:flex;flex-direction:column;align-items:center;padding-top:4px;}
+.dot{width:8px;height:8px;border-radius:50%;border:2px solid;flex-shrink:0;}
+.dot.green{background:var(--green);border-color:var(--green);}
+.dot.amber{background:var(--amber);border-color:var(--amber);}
+.dot.blue{background:var(--blue);border-color:var(--blue);}
+.dot.red{background:var(--red);border-color:var(--red);}
+.dot.purple{background:var(--purple);border-color:var(--purple);}
+.dot.past{background:var(--text-dim);border-color:var(--text-dim);}
+.tl-line{flex:1;width:1px;background:var(--border);margin-top:4px;}
+.activity-info{flex:1;min-width:0;}
+.activity-title{font-size:15px;font-weight:500;margin-bottom:3px;}
+.activity-desc{font-size:12px;color:var(--text-muted);line-height:1.5;}
+.activity-tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;letter-spacing:0.5px;margin-top:5px;}
+.tag-green{background:var(--green-dim);color:var(--green);}
+.tag-amber{background:var(--amber-dim);color:var(--amber);}
+.tag-blue{background:var(--blue-dim);color:var(--blue);}
+.tag-red{background:var(--red-dim);color:var(--red);}
+.tag-purple{background:var(--purple-dim);color:var(--purple);}
+
+.tl-actions{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+.tl-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:all 0.2s;flex-shrink:0;}
+.tl-btn:active{transform:scale(0.92);}
+.tl-btn.edit{color:var(--blue);}
+.tl-btn.del{color:var(--red);}
+.tl-bell{color:var(--amber);}
+.tl-bell.off{color:var(--text-dim);}
+
+/* ═══════════ MODAL ═══════════ */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:300;display:none;align-items:flex-end;justify-content:center;}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:24px;width:100%;max-width:480px;animation:slideUp 0.3s cubic-bezier(0.34,1.2,0.64,1);}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px;}
+.modal h3{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;margin-bottom:20px;}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;}
+.form-group input,.form-group textarea,.form-group select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:12px 14px;outline:none;transition:border-color 0.2s;}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--green);}
+.form-group select option{background:var(--surface2);}
+.form-group textarea{resize:none;min-height:80px;line-height:1.5;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.color-row{display:flex;gap:10px;}
+.color-dot-btn{width:30px;height:30px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:all 0.2s;}
+.color-dot-btn.selected{border-color:#fff;transform:scale(1.15);}
+.modal-footer{display:flex;gap:10px;margin-top:20px;}
+.btn-cancel{flex:1;padding:14px;border-radius:12px;border:1px solid var(--border);background:none;color:var(--text-muted);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;}
+.btn-save{flex:2;padding:14px;border-radius:12px;border:none;background:var(--green);color:#0d1117;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all 0.2s;}
+.btn-save:active{filter:brightness(0.9);}
+.remind-toggle{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border-radius:12px;border:1px solid var(--border);cursor:pointer;}
+.remind-toggle span{font-size:14px;}
+.remind-status{font-size:12px;font-weight:600;color:var(--text-muted);}
+.remind-status.on{color:var(--green);}
+
+/* ═══════════ AI COACH ═══════════ */
+.ai-header{margin:8px 20px 20px;background:linear-gradient(135deg,#1a1a2e,#0f0f1f);border:1px solid rgba(176,136,249,0.2);border-radius:20px;padding:24px;position:relative;overflow:hidden;}
+.ai-header::before{content:'';position:absolute;top:0;right:0;width:160px;height:160px;background:radial-gradient(circle at top right,rgba(176,136,249,0.15),transparent 70%);pointer-events:none;}
+.ai-header h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px;}
+.ai-header p{font-size:13px;color:rgba(255,255,255,0.55);line-height:1.6;}
+.ai-pill{display:inline-block;background:var(--purple-dim);color:var(--purple);border:1px solid rgba(176,136,249,0.2);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;letter-spacing:0.5px;margin-bottom:12px;}
+.chat-wrap{padding:0 20px;margin-bottom:16px;}
+#chat-messages{display:flex;flex-direction:column;gap:8px;}
+.chat-bubble{max-width:85%;padding:12px 16px;border-radius:18px;font-size:13px;line-height:1.6;}
+.chat-bubble.bot{background:var(--surface2);border-bottom-left-radius:4px;align-self:flex-start;white-space:pre-wrap;}
+.chat-bubble.user{background:var(--green);color:#0d1117;border-bottom-right-radius:4px;align-self:flex-end;font-weight:500;}
+.chat-bubble.typing{display:flex;gap:5px;align-items:center;padding:14px 18px;}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted);animation:typingBounce 1.2s infinite;}
+.typing-dot:nth-child(2){animation-delay:0.2s;}
+.typing-dot:nth-child(3){animation-delay:0.4s;}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+.chat-input-bar{position:fixed;bottom:64px;left:0;right:0;padding:10px 16px;background:rgba(13,17,23,0.97);border-top:1px solid var(--border);display:none;gap:10px;align-items:flex-end;z-index:200;}
+.chat-input-bar.visible{display:flex;}
+#chat-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;outline:none;resize:none;max-height:100px;min-height:42px;line-height:1.4;}
+#chat-input::placeholder{color:var(--text-dim);}
+.chat-send-btn{width:42px;height:42px;border-radius:12px;background:var(--green);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.chat-send-btn:active{filter:brightness(0.85);}
+.quick-prompts{padding:0 20px;margin-bottom:20px;display:flex;flex-wrap:wrap;gap:8px;}
+.quick-btn{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text);font-family:'DM Sans',sans-serif;}
+.quick-btn:active{border-color:var(--purple);color:var(--purple);}
+
+/* ═══════════ PROFILE ═══════════ */
+.profile-hero{margin:8px 20px 20px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;display:flex;align-items:center;gap:16px;}
+.avatar{width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,var(--green),#58a6ff);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#0d1117;flex-shrink:0;}
+.profile-info h2{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;}
+.profile-info p{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.profile-badge{display:inline-block;margin-top:8px;background:var(--green-dim);color:var(--green);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;}
+.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 20px;margin-bottom:20px;}
+.pstat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 10px;text-align:center;}
+.pstat .pval{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--green);}
+.pstat .plabel{font-size:10px;color:var(--text-muted);margin-top:2px;}
+.goals-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin:0 20px 20px;}
+.goal-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.goal-row:last-child{border-bottom:none;}
+.goal-label{flex:1;font-size:13px;}
+.goal-bar-wrap{width:80px;height:5px;background:var(--surface2);border-radius:3px;}
+.goal-bar{height:5px;border-radius:3px;background:var(--green);}
+.goal-val{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--green);min-width:32px;text-align:right;}
+.settings-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin:0 20px 20px;overflow:hidden;}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s;}
+.setting-row:last-child{border-bottom:none;}
+.setting-row:active{background:var(--surface2);}
+.setting-left{display:flex;align-items:center;gap:12px;}
+.setting-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.setting-label{font-size:14px;font-weight:500;}
+.setting-sub{font-size:11px;color:var(--text-muted);margin-top:1px;}
+.setting-right{color:var(--text-dim);font-size:16px;}
+.toggle{position:relative;width:44px;height:24px;}
+.toggle input{opacity:0;width:0;height:0;}
+.slider{position:absolute;inset:0;background:var(--surface2);border-radius:12px;cursor:pointer;transition:0.3s;border:1px solid var(--border);}
+.slider::before{content:'';position:absolute;width:18px;height:18px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:0.3s;}
+input:checked+.slider{background:var(--green);border-color:var(--green);}
+input:checked+.slider::before{transform:translateX(20px);}
+
+/* NAV */
+.nav-outer{position:fixed;bottom:0;left:0;right:0;z-index:100;}
+.nav-inner{max-width:480px;margin:0 auto;background:rgba(13,17,23,0.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;padding-bottom:env(safe-area-inset-bottom);}
+.nav-item{flex:1;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:all 0.2s;border:none;background:none;}
+.nav-icon{font-size:20px;transition:transform 0.2s;}
+.nav-label{font-size:9px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-dim);transition:color 0.2s;}
+.nav-item.active .nav-icon{transform:scale(1.15);}
+.nav-item.active .nav-label{color:var(--green);}
+
+/* TOAST */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--green);color:#0d1117;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;padding:10px 20px;border-radius:100px;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);z-index:9999;white-space:nowrap;box-shadow:0 8px 32px rgba(57,217,138,0.4);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* EMPTY STATE */
+.empty-state{padding:40px 20px;text-align:center;color:var(--text-muted);}
+.empty-state .empty-icon{font-size:40px;margin-bottom:12px;display:block;}
+.empty-state h4{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text);}
+.empty-state p{font-size:13px;line-height:1.6;}
+
+/* NOTIF BANNER */
+.notif-banner{margin:0 20px 16px;background:var(--amber-dim);border:1px solid rgba(249,168,37,0.25);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;}
+.notif-banner p{font-size:12px;color:var(--amber);line-height:1.5;flex:1;}
+.notif-banner .nb-icon{font-size:22px;flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<!-- ══════════ HOME ══════════ -->
+<div id="page-home" class="page active">
+  <div class="header">
+    <div class="header-left">
+      <h1>HealthyDay</h1>
+      <p id="greeting-sub">Loading...</p>
+    </div>
+    <div class="streak-badge">🔥 <span id="streak-num">0</span> days</div>
+  </div>
+  <div id="notif-banner" class="notif-banner" onclick="requestNotifPerm()" style="display:none;">
+    <span class="nb-icon">🔔</span>
+    <p><strong>Enable reminders</strong> — get notified when each activity is about to start!</p>
+  </div>
+  <div class="hero-card">
+    <div class="time-label" id="hero-label">RIGHT NOW</div>
+    <h2 id="hero-title">Loading...</h2>
+    <p id="hero-desc">Preparing your plan...</p>
+    <button class="send-btn" onclick="sendToChat()">📤 Send to Chat</button>
+  </div>
+  <div class="section-title">Today's Progress</div>
+  <div class="progress-section">
+    <div class="progress-card">
+      <div class="ring-wrap">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle class="ring-bg" cx="40" cy="40" r="35"/>
+          <circle class="ring-fill" id="ring-fill" cx="40" cy="40" r="35"/>
+        </svg>
+        <div class="ring-label" id="ring-pct">0%</div>
+      </div>
+      <div class="progress-info">
+        <h3>Daily Tasks</h3>
+        <p>Tap tasks to mark complete!</p>
+        <div class="mini-tasks" id="mini-tasks"></div>
+      </div>
+    </div>
+  </div>
+  <div class="section-title">Quick Stats</div>
+  <div class="stats-strip">
+    <div class="stat-card" onclick="bumpWater()">
+      <span class="icon">💧</span>
+      <div class="val" id="water-val">0</div>
+      <div class="label">Tap to add</div>
+    </div>
+    <div class="stat-card">
+      <span class="icon">📋</span>
+      <div class="val" id="total-plans-stat">0</div>
+      <div class="label">Plans Today</div>
+    </div>
+    <div class="stat-card">
+      <span class="icon">🔔</span>
+      <div class="val" id="reminders-stat">0</div>
+      <div class="label">Reminders On</div>
+    </div>
+  </div>
+  <div class="section-title">Upcoming Next</div>
+  <div class="messages-feed" id="upcoming-feed"></div>
+</div>
+
+<!-- ══════════ SCHEDULE ══════════ -->
+<div id="page-schedule" class="page">
+  <div class="header">
+    <div class="header-left">
+      <h1>Schedule</h1>
+      <p>Your personalized timetable</p>
+    </div>
+  </div>
+  <div class="sched-toolbar">
+    <div class="section-title" style="margin:0;padding:0;">All Plans</div>
+    <button class="add-btn" onclick="openAddModal()">+ Add Plan</button>
+  </div>
+  <div class="timeline" id="timeline"></div>
+</div>
+
+<!-- ══════════ AI COACH ══════════ -->
+<div id="page-ai" class="page">
+  <div class="header">
+    <div class="header-left"><h1>AI Coach</h1><p>Your personal health assistant</p></div>
+  </div>
+  <div class="ai-header">
+    <div class="ai-pill">🤖 Powered by Claude AI</div>
+    <h2>Ask me anything</h2>
+    <p>Nutrition, sleep, fitness, mindfulness — get personalized advice instantly.</p>
+  </div>
+  <div class="section-title">Quick Prompts</div>
+  <div class="quick-prompts">
+    <button class="quick-btn" onclick="askAI('What should I eat for breakfast today?')">🥣 Breakfast</button>
+    <button class="quick-btn" onclick="askAI('Give me a 5-minute morning stretch routine')">🧘 Stretch</button>
+    <button class="quick-btn" onclick="askAI('How can I sleep better tonight?')">😴 Sleep tips</button>
+    <button class="quick-btn" onclick="askAI('I feel tired. What should I do?')">⚡ Energy boost</button>
+    <button class="quick-btn" onclick="askAI('Give me a healthy lunch recipe under 500 calories')">🥗 Lunch</button>
+    <button class="quick-btn" onclick="askAI('How much water should I drink today?')">💧 Hydration</button>
+    <button class="quick-btn" onclick="askAI('Give me a quick 10-minute home workout')">🏋️ Workout</button>
+    <button class="quick-btn" onclick="askAI('How do I reduce stress quickly?')">🧠 Stress relief</button>
+  </div>
+  <div class="section-title">Chat</div>
+  <div class="chat-wrap">
+    <div id="chat-messages">
+      <div class="chat-bubble bot">👋 Hi! I am your AI Health Coach. Ask me anything about nutrition, fitness, sleep, stress, or your daily routine!</div>
+    </div>
+  </div>
+</div>
+
+<div class="chat-input-bar" id="chat-input-bar">
+  <textarea id="chat-input" placeholder="Ask a health question..." rows="1" onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
+  <button class="chat-send-btn" onclick="submitChat()">➤</button>
+</div>
+
+<!-- ══════════ PROFILE ══════════ -->
+<div id="page-profile" class="page">
+  <div class="header">
+    <div class="header-left"><h1>Profile</h1><p>Your health overview</p></div>
+  </div>
+  <div class="profile-hero">
+    <div class="avatar" id="avatar-initials">U</div>
+    <div class="profile-info">
+      <h2 id="profile-name">Health User</h2>
+      <p id="profile-handle">@healthyday</p>
+      <span class="profile-badge" id="profile-streak-badge">🔥 Building streak...</span>
+    </div>
+  </div>
+  <div class="section-title">This Week</div>
+  <div class="profile-stats">
+    <div class="pstat"><div class="pval" id="p-streak">0</div><div class="plabel">Day Streak</div></div>
+    <div class="pstat"><div class="pval" id="p-tasks">0</div><div class="plabel">Tasks Done</div></div>
+    <div class="pstat"><div class="pval" id="p-plans">0</div><div class="plabel">Total Plans</div></div>
+  </div>
+  <div class="section-title">Water Goal</div>
+  <div class="goals-card">
+    <div class="goal-row">
+      <span style="font-size:18px">💧</span>
+      <span class="goal-label">Water today (<span id="water-goal-text">0</span>/8)</span>
+      <div class="goal-bar-wrap"><div class="goal-bar" id="water-goal-bar" style="width:0%"></div></div>
+      <span class="goal-val" id="water-goal-pct">0%</span>
+    </div>
+    <div class="goal-row">
+      <span style="font-size:18px">📋</span>
+      <span class="goal-label">Tasks completed</span>
+      <div class="goal-bar-wrap"><div class="goal-bar" id="task-goal-bar" style="width:0%"></div></div>
+      <span class="goal-val" id="task-goal-pct">0%</span>
+    </div>
+    <div class="goal-row">
+      <span style="font-size:18px">🔔</span>
+      <span class="goal-label">Reminders active</span>
+      <div class="goal-bar-wrap"><div class="goal-bar" id="reminder-goal-bar" style="width:0%"></div></div>
+      <span class="goal-val" id="reminder-goal-pct">0</span>
+    </div>
+  </div>
+  <div class="section-title">Settings</div>
+  <div class="settings-card">
+    <div class="setting-row" onclick="requestNotifPerm()">
+      <div class="setting-left">
+        <div class="setting-icon" style="background:var(--amber-dim)">🔔</div>
+        <div><div class="setting-label">Enable Notifications</div><div class="setting-sub" id="notif-status-text">Tap to allow reminders</div></div>
+      </div>
+      <span class="setting-right">›</span>
+    </div>
+    <div class="setting-row" onclick="clearAllPlans()">
+      <div class="setting-left">
+        <div class="setting-icon" style="background:var(--red-dim)">🗑️</div>
+        <div><div class="setting-label">Clear All Plans</div><div class="setting-sub">Remove all schedule items</div></div>
+      </div>
+      <span class="setting-right">›</span>
+    </div>
+    <div class="setting-row" onclick="resetDailyTasks()">
+      <div class="setting-left">
+        <div class="setting-icon" style="background:var(--blue-dim)">🔄</div>
+        <div><div class="setting-label">Reset Daily Tasks</div><div class="setting-sub">Uncheck all for today</div></div>
+      </div>
+      <span class="setting-right">›</span>
+    </div>
+    <div class="setting-row" onclick="resetWater()">
+      <div class="setting-left">
+        <div class="setting-icon" style="background:var(--blue-dim)">💧</div>
+        <div><div class="setting-label">Reset Water Count</div><div class="setting-sub">Start water tracker at 0</div></div>
+      </div>
+      <span class="setting-right">›</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ADD / EDIT MODAL ══════════ -->
+<div class="overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-handle"></div>
+    <h3 id="modal-title">Add New Plan</h3>
+
+    <div class="form-group">
+      <label>Activity Name</label>
+      <input type="text" id="f-title" placeholder="e.g. Morning Yoga, Team Meeting...">
+    </div>
+    <div class="form-group">
+      <label>Description (optional)</label>
+      <textarea id="f-desc" placeholder="What will you do? Any notes..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Time</label>
+        <input type="time" id="f-time">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="f-cat">
+          <option value="green">🟢 Health</option>
+          <option value="amber">🟡 Nutrition</option>
+          <option value="blue">🔵 Wellness</option>
+          <option value="red">🔴 Exercise</option>
+          <option value="purple">🟣 Personal</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Reminder</label>
+      <div class="remind-toggle" onclick="toggleRemind()">
+        <span>🔔 Notify me when it's time</span>
+        <span class="remind-status" id="remind-status">OFF</span>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModalDirect()">Cancel</button>
+      <button class="btn-save" onclick="savePlan()">Save Plan</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav-outer">
+  <div class="nav-inner">
+    <button class="nav-item active" id="nav-home" onclick="switchTab('home')">
+      <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
+    </button>
+    <button class="nav-item" id="nav-schedule" onclick="switchTab('schedule')">
+      <span class="nav-icon">📅</span><span class="nav-label">Schedule</span>
+    </button>
+    <button class="nav-item" id="nav-ai" onclick="switchTab('ai')">
+      <span class="nav-icon">🤖</span><span class="nav-label">AI Coach</span>
+    </button>
+    <button class="nav-item" id="nav-profile" onclick="switchTab('profile')">
+      <span class="nav-icon">👤</span><span class="nav-label">Profile</span>
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════
+//  TELEGRAM
+// ════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor('#0d1117'); tg.setBackgroundColor('#0d1117'); } catch(e){} }
+
+// ════════════════════════════════════
+//  STATE — persisted in localStorage
+// ════════════════════════════════════
+const STORAGE_KEY = 'healthyday_v3';
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return {
+    plans: [
+      { id: uid(), time:'06:30', title:'Wake Up & Hydrate', desc:'Drink 1 glass of warm water with lemon. Start your metabolism!', color:'green', remind:true, done:false },
+      { id: uid(), time:'07:00', title:'Morning Stretch', desc:'10–15 min gentle stretching. Energize your body for the day.', color:'blue', remind:true, done:false },
+      { id: uid(), time:'07:30', title:'Nutritious Breakfast', desc:'Oats, eggs, or fruit + protein. Avoid sugary cereals!', color:'amber', remind:false, done:false },
+      { id: uid(), time:'12:30', title:'Balanced Lunch', desc:'50% veggies, 25% protein, 25% whole grains. Eat mindfully.', color:'amber', remind:false, done:false },
+      { id: uid(), time:'16:00', title:'Exercise / Walk', desc:'30 min cardio, strength, or a brisk outdoor walk.', color:'red', remind:true, done:false },
+      { id: uid(), time:'22:00', title:'Sleep', desc:'Aim for 7–8 hours. Keep your room cool and dark.', color:'green', remind:true, done:false },
+    ],
+    water: 0,
+    streak: 1,
+    lastReset: new Date().toDateString(),
+    notifGranted: false,
+    notifScheduled: [],
+  };
+}
+
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE)); } catch(e) {}
+}
+
+let STATE = loadState();
+
+// Check daily reset
+function checkDailyReset() {
+  const today = new Date().toDateString();
+  if (STATE.lastReset !== today) {
+    STATE.plans.forEach(p => p.done = false);
+    STATE.water = 0;
+    STATE.lastReset = today;
+    STATE.streak = (STATE.streak || 0) + 1;
+    saveState();
+  }
+}
+checkDailyReset();
+
+function uid() {
+  return Math.random().toString(36).slice(2,10);
+}
+
+// ════════════════════════════════════
+//  TABS
+// ════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  document.getElementById('nav-' + tab).classList.add('active');
+  document.getElementById('chat-input-bar').classList.toggle('visible', tab === 'ai');
+  if (tab === 'schedule') renderTimeline();
+  if (tab === 'home') { renderHero(); renderMiniTasks(); renderUpcoming(); updateStats(); }
+  if (tab === 'profile') renderProfile();
+}
+
+// ════════════════════════════════════
+//  HOME
+// ════════════════════════════════════
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return '☀️ Good morning';
+  if (h < 17) return '🌤️ Good afternoon';
+  if (h < 21) return '🌆 Good evening';
+  return '🌙 Good night';
+}
+
+function nowMinutes() {
+  const n = new Date(); return n.getHours() * 60 + n.getMinutes();
+}
+
+function timeToMin(t) {
+  if (!t) return 0;
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + (m || 0);
+}
+
+function renderHero() {
+  const now = nowMinutes();
+  const sorted = [...STATE.plans].sort((a,b) => timeToMin(a.time) - timeToMin(b.time));
+
+  // Find current or next
+  let current = sorted.find(p => timeToMin(p.time) <= now && timeToMin(p.time) > now - 90);
+  let next = sorted.find(p => timeToMin(p.time) > now);
+
+  const plan = current || next || sorted[0];
+
+  if (!plan) {
+    document.getElementById('hero-label').textContent = 'NO PLANS';
+    document.getElementById('hero-title').textContent = 'Add your first plan!';
+    document.getElementById('hero-desc').textContent = 'Go to the Schedule tab and tap "+ Add Plan" to create your personalized timetable.';
+    return;
+  }
+
+  const label = current ? 'RIGHT NOW' : (next ? 'UP NEXT — ' + fmt12(plan.time) : 'LATER TODAY');
+  document.getElementById('hero-label').textContent = label;
+  document.getElementById('hero-title').textContent = plan.title;
+  document.getElementById('hero-desc').textContent = plan.desc || 'Stay on track with your healthy routine!';
+}
+
+function renderMiniTasks() {
+  const el = document.getElementById('mini-tasks');
+  const done = STATE.plans.filter(p => p.done).length;
+  const total = STATE.plans.length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('ring-pct').textContent = pct + '%';
+  document.getElementById('ring-fill').style.strokeDashoffset = 220 - (pct / 100) * 220;
+
+  const sorted = [...STATE.plans].sort((a,b) => timeToMin(a.time) - timeToMin(b.time));
+  el.innerHTML = '';
+  sorted.slice(0,5).forEach(p => {
+    el.innerHTML += `<div class="mini-task" onclick="toggleDone('${p.id}')">
+      <div class="check ${p.done?'done':'todo'}">${p.done?'✓':''}</div>
+      <span style="${p.done?'text-decoration:line-through;opacity:0.5':''}">${p.title}</span>
+    </div>`;
+  });
+  if (sorted.length === 0) el.innerHTML = '<div style="font-size:12px;color:var(--text-dim)">No plans yet — add some!</div>';
+}
+
+function toggleDone(id) {
+  const p = STATE.plans.find(x => x.id === id);
+  if (!p) return;
+  p.done = !p.done;
+  saveState();
+  renderMiniTasks();
+  renderUpcoming();
+  updateStats();
+  showToast(p.done ? '✅ Task completed!' : '↩️ Marked incomplete');
+}
+
+function renderUpcoming() {
+  const el = document.getElementById('upcoming-feed');
+  const now = nowMinutes();
+  const sorted = [...STATE.plans]
+    .sort((a,b) => timeToMin(a.time) - timeToMin(b.time))
+    .filter(p => timeToMin(p.time) >= now && !p.done)
+    .slice(0,4);
+
+  if (sorted.length === 0) {
+    el.innerHTML = `<div class="empty-state"><span class="empty-icon">🎉</span><h4>All done for today!</h4><p>Great job staying on track. Add more plans in the Schedule tab.</p></div>`;
+    return;
+  }
+  el.innerHTML = '';
+  sorted.forEach(p => {
+    const colorMap = { green:'🟢', amber:'🟡', blue:'🔵', red:'🔴', purple:'🟣' };
+    const tagMap = { green:'Health', amber:'Nutrition', blue:'Wellness', red:'Exercise', purple:'Personal' };
+    el.innerHTML += `<div class="msg-item ${p.remind?'active-item':''}" onclick="sendMessage('⏰ ${p.title.replace(/'/g,"&#39;")}\\n${(p.desc||'').replace(/'/g,"&#39;")}')">
+      <div class="msg-icon">${colorMap[p.color]||'🟢'}</div>
+      <div style="flex:1">
+        <div class="msg-title">${p.title}</div>
+        <div class="msg-text">${p.desc || 'Tap to send reminder'}</div>
+        <div class="msg-time">⏰ ${fmt12(p.time)}${p.remind?' · 🔔 Reminder on':''}</div>
+      </div>
+      <div class="msg-arrow">›</div>
+    </div>`;
+  });
+}
+
+function updateStats() {
+  const total = STATE.plans.length;
+  const reminders = STATE.plans.filter(p => p.remind).length;
+  document.getElementById('total-plans-stat').textContent = total;
+  document.getElementById('reminders-stat').textContent = reminders;
+  document.getElementById('water-val').textContent = STATE.water;
+  document.getElementById('streak-num').textContent = STATE.streak || 1;
+}
+
+function bumpWater() {
+  if (STATE.water < 12) {
+    STATE.water++;
+    saveState();
+    updateStats();
+    renderProfile();
+    showToast(STATE.water >= 8 ? '🎉 Water goal reached!' : `💧 Glass ${STATE.water} logged!`);
+  } else {
+    showToast('✅ Great hydration today!');
+  }
+}
+
+// ════════════════════════════════════
+//  SCHEDULE — TIMELINE
+// ════════════════════════════════════
+function fmt12(time24) {
+  if (!time24) return '';
+  const [h, m] = time24.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
+function tagClass(color) {
+  return 'tag-' + (color || 'green');
+}
+
+function tagLabel(color) {
+  return { green:'Health', amber:'Nutrition', blue:'Wellness', red:'Exercise', purple:'Personal' }[color] || 'Health';
+}
+
+function renderTimeline() {
+  const el = document.getElementById('timeline');
+  const now = nowMinutes();
+  const sorted = [...STATE.plans].sort((a,b) => timeToMin(a.time) - timeToMin(b.time));
+
+  if (sorted.length === 0) {
+    el.innerHTML = `<div class="empty-state"><span class="empty-icon">📅</span><h4>No plans yet</h4><p>Tap "+ Add Plan" above to create your first activity and start building your healthy timetable.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = '';
+  sorted.forEach((item, i) => {
+    const isPast = timeToMin(item.time) < now && item.done;
+    const isCurrent = timeToMin(item.time) <= now && timeToMin(item.time) > now - 90;
+    const dotClass = isPast ? 'past' : item.color;
+    const [hh, mm] = item.time.split(':');
+    const ampm = parseInt(hh) >= 12 ? 'PM' : 'AM';
+    const h12 = parseInt(hh) % 12 || 12;
+
+    el.innerHTML += `<div class="tl-item" style="${isPast?'opacity:0.45':''}${isCurrent?'background:rgba(57,217,138,0.03);border-radius:12px;':''}">
+      <div class="time-col">
+        <div class="t" style="color:${isPast?'var(--text-dim)':isCurrent?'var(--green)':'var(--text)'}">${h12}:${mm}</div>
+        <div class="period">${ampm}</div>
+      </div>
+      <div class="tl-mid">
+        <div class="dot ${dotClass}" style="${isCurrent?'box-shadow:0 0 8px var(--green)':''}"></div>
+        ${i < sorted.length-1 ? '<div class="tl-line"></div>' : ''}
+      </div>
+      <div class="activity-info">
+        <div class="activity-title">${item.title}${item.done?' <span style="color:var(--green);font-size:12px">✓</span>':''}</div>
+        ${item.desc ? `<div class="activity-desc">${item.desc}</div>` : ''}
+        <span class="activity-tag ${tagClass(item.color)}">${tagLabel(item.color)}</span>
+        ${item.remind ? '<span style="font-size:10px;color:var(--amber);margin-left:6px">🔔</span>' : ''}
+      </div>
+      <div class="tl-actions">
+        <div class="tl-btn tl-bell ${item.remind?'':'off'}" onclick="toggleReminder('${item.id}')" title="Toggle reminder">${item.remind?'🔔':'🔕'}</div>
+        <div class="tl-btn edit" onclick="openEditModal('${item.id}')" title="Edit">✏️</div>
+        <div class="tl-btn del" onclick="deletePlan('${item.id}')" title="Delete">🗑️</div>
+      </div>
+    </div>`;
+  });
+}
+
+function toggleReminder(id) {
+  const p = STATE.plans.find(x => x.id === id);
+  if (!p) return;
+  if (!p.remind && Notification.permission !== 'granted') {
+    requestNotifPerm().then(() => {
+      p.remind = true; saveState(); renderTimeline(); scheduleAllNotifs();
+      showToast('🔔 Reminder enabled!');
+    });
+    return;
+  }
+  p.remind = !p.remind;
+  saveState();
+  renderTimeline();
+  scheduleAllNotifs();
+  updateStats();
+  showToast(p.remind ? '🔔 Reminder on!' : '🔕 Reminder off');
+}
+
+// ════════════════════════════════════
+//  MODAL — Add / Edit
+// ════════════════════════════════════
+let editingId = null;
+let formRemind = false;
+
+function openAddModal() {
+  editingId = null;
+  formRemind = false;
+  document.getElementById('modal-title').textContent = 'Add New Plan';
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-desc').value = '';
+  const now = new Date();
+  document.getElementById('f-time').value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('f-cat').value = 'green';
+  document.getElementById('remind-status').textContent = 'OFF';
+  document.getElementById('remind-status').className = 'remind-status';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function openEditModal(id) {
+  const p = STATE.plans.find(x => x.id === id);
+  if (!p) return;
+  editingId = id;
+  formRemind = p.remind;
+  document.getElementById('modal-title').textContent = 'Edit Plan';
+  document.getElementById('f-title').value = p.title;
+  document.getElementById('f-desc').value = p.desc || '';
+  document.getElementById('f-time').value = p.time;
+  document.getElementById('f-cat').value = p.color || 'green';
+  document.getElementById('remind-status').textContent = formRemind ? 'ON' : 'OFF';
+  document.getElementById('remind-status').className = 'remind-status' + (formRemind ? ' on' : '');
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function toggleRemind() {
+  if (!formRemind && Notification.permission !== 'granted') {
+    requestNotifPerm();
+  }
+  formRemind = !formRemind;
+  document.getElementById('remind-status').textContent = formRemind ? 'ON' : 'OFF';
+  document.getElementById('remind-status').className = 'remind-status' + (formRemind ? ' on' : '');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModalDirect();
+}
+
+function closeModalDirect() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function savePlan() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { showToast('⚠️ Please enter a plan name'); return; }
+  const time = document.getElementById('f-time').value;
+  if (!time) { showToast('⚠️ Please set a time'); return; }
+
+  const plan = {
+    id: editingId || uid(),
+    title,
+    desc: document.getElementById('f-desc').value.trim(),
+    time,
+    color: document.getElementById('f-cat').value,
+    remind: formRemind,
+    done: false,
+  };
+
+  if (editingId) {
+    const idx = STATE.plans.findIndex(x => x.id === editingId);
+    if (idx !== -1) plan.done = STATE.plans[idx].done;
+    STATE.plans[idx !== -1 ? idx : STATE.plans.length] = plan;
+    showToast('✅ Plan updated!');
+  } else {
+    STATE.plans.push(plan);
+    showToast('✅ Plan added!');
+  }
+
+  saveState();
+  closeModalDirect();
+  renderTimeline();
+  renderHero();
+  renderMiniTasks();
+  renderUpcoming();
+  updateStats();
+  scheduleAllNotifs();
+}
+
+function deletePlan(id) {
+  if (!confirm('Delete this plan?')) return;
+  STATE.plans = STATE.plans.filter(x => x.id !== id);
+  saveState();
+  renderTimeline();
+  renderHero();
+  renderMiniTasks();
+  renderUpcoming();
+  updateStats();
+  showToast('🗑️ Plan deleted');
+}
+
+// ════════════════════════════════════
+//  NOTIFICATIONS
+// ════════════════════════════════════
+let notifTimers = [];
+
+async function requestNotifPerm() {
+  if (!('Notification' in window)) {
+    showToast('⚠️ Notifications not supported in this browser');
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    STATE.notifGranted = true;
+    saveState();
+    updateNotifUI();
+    scheduleAllNotifs();
+    showToast('🔔 Notifications already enabled!');
+    return;
+  }
+  const result = await Notification.requestPermission();
+  STATE.notifGranted = result === 'granted';
+  saveState();
+  updateNotifUI();
+  if (result === 'granted') {
+    scheduleAllNotifs();
+    document.getElementById('notif-banner').style.display = 'none';
+    showToast('🔔 Reminders enabled! You will be notified on time.');
+  } else {
+    showToast('❌ Please allow notifications in browser settings');
+  }
+}
+
+function updateNotifUI() {
+  const granted = Notification.permission === 'granted';
+  document.getElementById('notif-status-text').textContent = granted ? '✅ Notifications are ON' : 'Tap to allow reminders';
+  document.getElementById('notif-banner').style.display = granted ? 'none' : 'flex';
+}
+
+function scheduleAllNotifs() {
+  // Clear existing timers
+  notifTimers.forEach(t => clearTimeout(t));
+  notifTimers = [];
+
+  if (Notification.permission !== 'granted') return;
+
+  const now = new Date();
+  const nowMs = now.getTime();
+
+  STATE.plans.filter(p => p.remind).forEach(p => {
+    const [h, m] = p.time.split(':').map(Number);
+    const target = new Date();
+    target.setHours(h, m, 0, 0);
+
+    // If time already passed today, schedule for tomorrow
+    if (target.getTime() <= nowMs) target.setDate(target.getDate() + 1);
+
+    const delay = target.getTime() - nowMs;
+    const timer = setTimeout(() => {
+      fireNotif(p);
+    }, delay);
+    notifTimers.push(timer);
+  });
+}
+
+function fireNotif(plan) {
+  if (Notification.permission !== 'granted') return;
+  try {
+    const n = new Notification('HealthyDay ⏰', {
+      body: `${plan.title}${plan.desc ? '\n' + plan.desc : ''}`,
+      icon: 'https://telegram.org/img/t_logo.png',
+      badge: 'https://telegram.org/img/t_logo.png',
+      tag: plan.id,
+      requireInteraction: false,
+    });
+    n.onclick = () => { n.close(); };
+  } catch(e) {}
+
+  // Also try Telegram bot notification
+  if (tg) {
+    try { tg.sendData(JSON.stringify({ type:'reminder', message: `⏰ Time for: ${plan.title}\n${plan.desc||''}`, time: new Date().toISOString() })); } catch(e) {}
+  }
+
+  // Reschedule for tomorrow
+  setTimeout(() => scheduleAllNotifs(), 1000);
+}
+
+// ════════════════════════════════════
+//  AI COACH
+// ════════════════════════════════════
+let isAITyping = false;
+
+function askAI(prompt) {
+  document.getElementById('chat-input').value = prompt;
+  submitChat();
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChat(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+async function submitChat() {
+  if (isAITyping) return;
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+
+  addBubble(text, 'user');
+  isAITyping = true;
+
+  const typingId = 'typing-' + Date.now();
+  const msgEl = document.getElementById('chat-messages');
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'chat-bubble bot typing';
+  typingDiv.id = typingId;
+  typingDiv.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  msgEl.appendChild(typingDiv);
+  scrollChat();
+
+  // Build schedule context
+  const scheduleContext = STATE.plans.length > 0
+    ? 'User schedule today: ' + STATE.plans.sort((a,b) => timeToMin(a.time)-timeToMin(b.time)).map(p => `${fmt12(p.time)} - ${p.title}`).join(', ')
+    : 'No plans set yet.';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are a friendly, knowledgeable AI health coach inside a Telegram mini-app called HealthyDay. Give practical, encouraging, science-backed health advice. Focus on: nutrition, sleep, exercise, hydration, mindfulness, and daily routines. Keep answers concise (2–4 sentences unless listing steps). Use emojis naturally. Never diagnose medical conditions. Be warm and motivating. ${scheduleContext}`,
+        messages: [{ role: 'user', content: text }]
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.map(c => c.text || '').join('') || 'I could not get a response. Please try again!';
+    document.getElementById(typingId)?.remove();
+    addBubble(reply, 'bot');
+  } catch(err) {
+    document.getElementById(typingId)?.remove();
+    addBubble('⚠️ Connection error. Please check your internet and try again.', 'bot');
+  }
+  isAITyping = false;
+}
+
+function addBubble(text, role) {
+  const el = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'chat-bubble ' + role;
+  div.textContent = text;
+  el.appendChild(div);
+  scrollChat();
+}
+
+function scrollChat() {
+  setTimeout(() => document.getElementById('chat-messages')?.lastElementChild?.scrollIntoView({ behavior:'smooth', block:'end' }), 100);
+}
+
+// ════════════════════════════════════
+//  PROFILE
+// ════════════════════════════════════
+function renderProfile() {
+  const done = STATE.plans.filter(p => p.done).length;
+  const total = STATE.plans.length;
+  const reminders = STATE.plans.filter(p => p.remind).length;
+  const pct = total > 0 ? Math.round((done/total)*100) : 0;
+  const waterPct = Math.min(Math.round((STATE.water/8)*100), 100);
+
+  document.getElementById('p-streak').textContent = STATE.streak || 1;
+  document.getElementById('p-tasks').textContent = done;
+  document.getElementById('p-plans').textContent = total;
+  document.getElementById('profile-streak-badge').textContent = `🔥 ${STATE.streak || 1}-day streak`;
+
+  document.getElementById('water-goal-text').textContent = STATE.water;
+  document.getElementById('water-goal-bar').style.width = waterPct + '%';
+  document.getElementById('water-goal-pct').textContent = waterPct + '%';
+
+  document.getElementById('task-goal-bar').style.width = pct + '%';
+  document.getElementById('task-goal-pct').textContent = pct + '%';
+
+  document.getElementById('reminder-goal-bar').style.width = (reminders > 0 ? Math.min(reminders * 10, 100) : 0) + '%';
+  document.getElementById('reminder-goal-pct').textContent = reminders;
+}
+
+// ════════════════════════════════════
+//  SETTINGS
+// ════════════════════════════════════
+function clearAllPlans() {
+  if (!confirm('Delete ALL plans? This cannot be undone.')) return;
+  STATE.plans = [];
+  saveState();
+  renderTimeline();
+  renderHero();
+  renderMiniTasks();
+  renderUpcoming();
+  updateStats();
+  showToast('🗑️ All plans cleared');
+}
+
+function resetDailyTasks() {
+  STATE.plans.forEach(p => p.done = false);
+  saveState();
+  renderMiniTasks();
+  renderUpcoming();
+  updateStats();
+  showToast('🔄 Tasks reset!');
+}
+
+function resetWater() {
+  STATE.water = 0;
+  saveState();
+  updateStats();
+  renderProfile();
+  showToast('💧 Water count reset');
+}
+
+// ════════════════════════════════════
+//  SHARED
+// ════════════════════════════════════
+function sendToChat() {
+  const title = document.getElementById('hero-title').textContent;
+  const desc = document.getElementById('hero-desc').textContent;
+  sendMessage('🌿 HealthyDay Reminder\n\n' + title + '\n' + desc);
+}
+
+function sendMessage(text) {
+  if (tg) {
+    try { tg.sendData(JSON.stringify({ type:'reminder', message:text, time:new Date().toISOString() })); } catch(e) {}
+  }
+  showToast('✅ Sent to chat!');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ════════════════════════════════════
+//  INIT
+// ════════════════════════════════════
+function init() {
+  const user = tg?.initDataUnsafe?.user;
+  const name = user?.first_name || 'there';
+  document.getElementById('greeting-sub').textContent = getGreeting() + ', ' + name + '!';
+  document.getElementById('profile-name').textContent = (user?.first_name || '') + (user?.last_name ? ' ' + user.last_name : '') || 'Health User';
+  document.getElementById('profile-handle').textContent = user?.username ? '@' + user.username : '@healthyday';
+  document.getElementById('avatar-initials').textContent = (user?.first_name || 'U')[0].toUpperCase();
+
+  updateNotifUI();
+  renderHero();
+  renderMiniTasks();
+  renderMessages_compat();
+  renderUpcoming();
+  updateStats();
+  renderTimeline();
+
+  // Schedule notifications
+  if (Notification.permission === 'granted') {
+    scheduleAllNotifs();
+  }
+
+  // Re-render hero every minute
+  setInterval(() => {
+    renderHero();
+    renderUpcoming();
+    checkDailyReset();
+  }, 60000);
+}
+
+// Compat shim for old renderMessages call
+function renderMessages_compat() {}
+
+init();
+</script>
+</body>
+</html>
